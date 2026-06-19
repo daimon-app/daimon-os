@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f1923">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DAIMON OS">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<title>DAIMON OS</title>
+<style>
+/* ===== DESIGN TOKENS ===== */
+:root {
+  --ink:       #0f1923;   /* 深夜の海 */
+  --ink-soft:  #1c2a38;   /* パネル背景 */
+  --ink-mid:   #253445;   /* カード背景 */
+  --gold:      #c9a84c;   /* 意志の金 */
+  --gold-soft: #e8c96a;   /* 金ハイライト */
+  --green:     #4caf87;   /* 回復の緑 */
+  --green-dim: #2d6e56;   /* 緑薄 */
+  --white:     #f0ece4;   /* 温かい白 */
+  --white-dim: #8fa0b0;   /* 薄い文字 */
+  --morning:   #e8a84c;   /* 朝の橙 */
+  --evening:   #7b68ee;   /* 夜の紫 */
+  --danger:    #e06060;   /* 警戒 */
+
+  --radius: 16px;
+  --radius-sm: 10px;
+  --gap: 14px;
+  --font: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+}
+
+/* ===== RESET ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--ink); color: var(--white); font-family: var(--font); overflow: hidden; }
+button { font-family: var(--font); border: none; cursor: pointer; }
+input, textarea { font-family: var(--font); outline: none; }
+textarea { resize: none; }
+
+/* ===== APP SHELL ===== */
+#app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ===== SCREENS ===== */
+.screen {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.screen.active { display: flex; }
+
+/* ===== SCROLL AREA ===== */
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px var(--gap) 32px;
+}
+
+/* ===== HOME ===== */
+.home-header {
+  padding: 20px var(--gap) 8px;
+  flex-shrink: 0;
+}
+.home-brand {
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.home-tagline {
+  font-size: 15px;
+  color: var(--white-dim);
+  font-weight: 300;
+}
+
+.situation-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: var(--gap);
+}
+
+.situation-card {
+  background: var(--ink-mid);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid transparent;
+  transition: all 0.18s ease;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.situation-card:active { transform: scale(0.97); }
+.situation-card[data-s="morning"] { border-color: rgba(232,168,76,0.2); }
+.situation-card[data-s="work"]    { border-color: rgba(201,168,76,0.15); }
+.situation-card[data-s="idea"]    { border-color: rgba(76,175,135,0.2); }
+.situation-card[data-s="return"]  { border-color: rgba(224,96,96,0.2); }
+.situation-card[data-s="night"]   { border-color: rgba(123,104,238,0.25); }
+
+.s-icon {
+  font-size: 28px;
+  width: 44px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.s-body { flex: 1; }
+.s-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--white);
+  margin-bottom: 3px;
+}
+.s-sub {
+  font-size: 12px;
+  color: var(--white-dim);
+  line-height: 1.4;
+}
+.s-arrow {
+  color: var(--white-dim);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* 今日のサマリー */
+.home-summary {
+  margin: 0 var(--gap) 20px;
+  background: var(--ink-soft);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.summary-item { text-align: center; }
+.summary-num {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gold);
+  line-height: 1;
+}
+.summary-label {
+  font-size: 10px;
+  color: var(--white-dim);
+  margin-top: 3px;
+  letter-spacing: 0.05em;
+}
+.summary-action {
+  text-align: right;
+  max-width: 120px;
+}
+.summary-action-val {
+  font-size: 13px;
+  color: var(--white);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== DETAIL SCREENS ===== */
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px var(--gap) 12px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.back-btn {
+  background: var(--ink-mid);
+  color: var(--white-dim);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.back-btn:active { opacity: 0.6; }
+.detail-title-wrap { flex: 1; }
+.detail-emoji { font-size: 22px; }
+.detail-title { font-size: 18px; font-weight: 700; color: var(--white); }
+
+/* 人間OSカード */
+.os-card {
+  background: linear-gradient(135deg, rgba(201,168,76,0.08), rgba(201,168,76,0.03));
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+.os-card-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.os-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold-soft);
+  margin-bottom: 7px;
+}
+.os-card-body {
+  font-size: 12px;
+  color: var(--white-dim);
+  line-height: 1.7;
+}
+.os-card-tags {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.os-tag {
+  font-size: 10px;
+  color: var(--gold);
+  background: rgba(201,168,76,0.1);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+/* セクション */
+.section { margin-bottom: 20px; }
+.section-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--white-dim);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* 表示ブロック */
+.display-block {
+  background: var(--ink-mid);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.display-block-val {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold-soft);
+  line-height: 1.3;
+}
+.display-block-hint {
+  font-size: 11px;
+  color: var(--white-dim);
+  margin-top: 4px;
+}
+
+/* ボタン系 */
+.btn-primary {
+  width: 100%;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.05em;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s;
+}
+.btn-primary:active { opacity: 0.8; }
+
+.btn-secondary {
+  width: 100%;
+  background: var(--ink-mid);
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.1);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-secondary:active { opacity: 0.7; }
+
+.btn-green {
+  width: 100%;
+  background: var(--green);
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-green:active { opacity: 0.8; }
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+}
+.btn-row .btn-secondary { flex: 1; font-size: 13px; padding: 11px 8px; }
+
+/* テキスト入力 */
+.text-input {
+  width: 100%;
+  background: var(--ink-mid);
+  color: var(--white);
+  font-size: 16px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.text-input:focus { border-color: rgba(201,168,76,0.4); }
+.text-input::placeholder { color: var(--white-dim); }
+
+.textarea-input {
+  width: 100%;
+  background: var(--ink-mid);
+  color: var(--white);
+  font-size: 15px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.08);
+  min-height: 90px;
+  line-height: 1.6;
+}
+.textarea-input:focus { border-color: rgba(201,168,76,0.4); }
+.textarea-input::placeholder { color: var(--white-dim); }
+
+/* 候補ボタングリッド */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+.chip {
+  background: var(--ink-mid);
+  color: var(--white-dim);
+  font-size: 13px;
+  padding: 7px 13px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.chip:active { background: rgba(201,168,76,0.15); color: var(--gold); }
+.chip.selected { background: rgba(201,168,76,0.15); color: var(--gold); border-color: rgba(201,168,76,0.3); }
+
+/* ヒントパネル */
+.hint-panel {
+  background: var(--ink-soft);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-top: 10px;
+  display: none;
+}
+.hint-panel.open { display: block; }
+.hint-mode-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.hint-mode-btn {
+  font-size: 12px;
+  background: var(--ink-mid);
+  color: var(--white-dim);
+  padding: 5px 11px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.hint-mode-btn.active { color: var(--gold); border-color: rgba(201,168,76,0.3); }
+.hint-question {
+  font-size: 13px;
+  color: var(--white);
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hint-question:last-child { border-bottom: none; }
+.hint-question:active { color: var(--gold); }
+
+/* 証拠リスト */
+.evidence-list { display: flex; flex-direction: column; gap: 8px; }
+.evidence-item {
+  background: var(--ink-mid);
+  border-radius: var(--radius-sm);
+  padding: 12px 15px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.evidence-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+.evidence-dot.return-dot { background: var(--gold); }
+.evidence-text { font-size: 14px; line-height: 1.5; color: var(--white); }
+.evidence-time { font-size: 11px; color: var(--white-dim); margin-top: 2px; }
+.evidence-empty {
+  font-size: 14px;
+  color: var(--white-dim);
+  text-align: center;
+  padding: 24px;
+}
+
+/* 戻る一手リスト */
+.return-action-list { display: flex; flex-direction: column; gap: 8px; }
+.return-action-item {
+  background: var(--ink-mid);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.return-action-item:active { background: rgba(76,175,135,0.15); }
+.return-action-text { font-size: 15px; color: var(--white); }
+.return-action-use { font-size: 12px; color: var(--green); }
+
+/* タイマー */
+.timer-display {
+  text-align: center;
+  padding: 24px 0 16px;
+}
+.timer-num {
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--white);
+  letter-spacing: -0.02em;
+  font-feature-settings: 'tnum';
+  line-height: 1;
+}
+.timer-label { font-size: 13px; color: var(--white-dim); margin-top: 8px; }
+.timer-btns { display: flex; gap: 10px; margin-top: 14px; }
+.timer-btns button { flex: 1; }
+.timer-preset-row { display: flex; gap: 6px; margin-bottom: 12px; }
+.timer-preset-row button {
+  flex: 1;
+  background: var(--ink-mid);
+  color: var(--white-dim);
+  font-size: 13px;
+  padding: 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+}
+.timer-preset-row button.active-preset { color: var(--gold); border-color: rgba(201,168,76,0.3); }
+
+/* ミニ入力 */
+.mini-input-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.mini-input-row .text-input { flex: 1; font-size: 15px; padding: 12px 14px; }
+.mini-input-row .btn-primary { width: auto; padding: 12px 18px; font-size: 14px; }
+
+/* モーダル */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 100;
+  display: none;
+  align-items: flex-end;
+}
+.modal-overlay.open { display: flex; }
+.modal-sheet {
+  background: var(--ink-soft);
+  border-radius: 20px 20px 0 0;
+  padding: 20px var(--gap) 40px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.modal-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+.modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 16px;
+}
+
+/* トースト */
+#toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--green);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 24px;
+  border-radius: 30px;
+  opacity: 0;
+  transition: all 0.25s ease;
+  pointer-events: none;
+  z-index: 200;
+  white-space: nowrap;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* 仕事中タブ */
+.tab-row {
+  display: flex;
+  margin-bottom: 16px;
+  background: var(--ink-soft);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--white-dim);
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s;
+}
+.tab-btn.active { background: var(--ink-mid); color: var(--white); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ===== 朝画面カラー ===== */
+.morning-accent .btn-primary { background: var(--morning); }
+.morning-accent .os-card-label, .morning-accent .os-card-title { color: var(--morning); }
+
+/* ===== 崩れた画面 ===== */
+.return-header-badge {
+  background: rgba(224,96,96,0.1);
+  border: 1px solid rgba(224,96,96,0.2);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+/* 夜画面 */
+.night-accent .btn-primary { background: var(--evening); }
+.night-accent .btn-primary { color: var(--white); }
+.night-accent .os-card-label, .night-accent .os-card-title { color: #a89fe8; }
+
+/* スクロールバー非表示 */
+::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ====== ホーム ====== -->
+  <div class="screen active" id="screen-home">
+    <div class="home-header">
+      <div class="home-brand">DAIMON OS</div>
+      <div class="home-tagline">今日、自分に主導権を戻す。</div>
+    </div>
+
+    <div class="situation-grid">
+      <div class="situation-card" data-s="morning" onclick="openScreen('morning')">
+        <div class="s-icon">☀️</div>
+        <div class="s-body">
+          <div class="s-title">朝</div>
+          <div class="s-sub" id="home-morning-sub">昨日の一手を見る</div>
+        </div>
+        <div class="s-arrow">›</div>
+      </div>
+
+      <div class="situation-card" data-s="work" onclick="openScreen('work')">
+        <div class="s-icon">🔨</div>
+        <div class="s-body">
+          <div class="s-title">仕事中</div>
+          <div class="s-sub">休んで、戻る</div>
+        </div>
+        <div class="s-arrow">›</div>
+      </div>
+
+      <div class="situation-card" data-s="idea" onclick="openScreen('idea')">
+        <div class="s-icon">💡</div>
+        <div class="s-body">
+          <div class="s-title">ひらめいた</div>
+          <div class="s-sub">消える前に入れる</div>
+        </div>
+        <div class="s-arrow">›</div>
+      </div>
+
+      <div class="situation-card" data-s="return" onclick="openScreen('return')">
+        <div class="s-icon">↩️</div>
+        <div class="s-body">
+          <div class="s-title">崩れた</div>
+          <div class="s-sub">戻る一手を使う</div>
+        </div>
+        <div class="s-arrow">›</div>
+      </div>
+
+      <div class="situation-card" data-s="night" onclick="openScreen('night')">
+        <div class="s-icon">🌙</div>
+        <div class="s-body">
+          <div class="s-title">夜</div>
+          <div class="s-sub">証拠を回収する</div>
+        </div>
+        <div class="s-arrow">›</div>
+      </div>
+    </div>
+
+    <div class="home-summary">
+      <div class="summary-item">
+        <div class="summary-num" id="home-evidence-count">0</div>
+        <div class="summary-label">今日の証拠</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-num" id="home-return-count">0</div>
+        <div class="summary-label">今月の復帰</div>
+      </div>
+      <div class="summary-action">
+        <div class="summary-label" style="text-align:right;">明日の一手</div>
+        <div class="summary-action-val" id="home-tomorrow-action">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 朝 ====== -->
+  <div class="screen morning-accent" id="screen-morning">
+    <div class="detail-header">
+      <button class="back-btn" onclick="goHome()">‹</button>
+      <div class="detail-title-wrap">
+        <span class="detail-emoji">☀️</span>
+        <span class="detail-title"> 朝</span>
+      </div>
+    </div>
+    <div class="scroll-area">
+
+      <div class="os-card">
+        <div class="os-card-label">人間OS</div>
+        <div class="os-card-title">なぜ夜に明日を決めるのか？</div>
+        <div class="os-card-body">脳は未完了のことを覚え続けます。夜に一手を置くと、朝の迷いと意思決定コストが減ります。</div>
+        <div class="os-card-tags">
+          <span class="os-tag">ツァイガルニク効果</span>
+          <span class="os-tag">決定疲れ</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">昨夜決めた一手</div>
+        <div class="display-block">
+          <div class="display-block-val" id="morning-tomorrow-val">—</div>
+          <div class="display-block-hint">これが今日の出発点</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">今日の自己設定</div>
+        <div class="display-block" style="background: rgba(232,168,76,0.06); border:1px solid rgba(232,168,76,0.15);">
+          <div style="font-size:15px; color:var(--white); line-height:1.6;" id="morning-affirmation">
+            速く正確で美しい仕事で、今日も信頼を積み上げる。
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">今日の最小行動</div>
+        <div class="display-block-hint" style="margin-bottom:8px;">なにがあっても、これだけはやる</div>
+        <div class="mini-input-row">
+          <input class="text-input" id="morning-min-action" placeholder="例：朝イチで図面を開く" type="text">
+          <button class="btn-primary" style="width:auto; padding:12px 16px; font-size:14px;" onclick="saveMorningMinAction()">保存</button>
+        </div>
+        <div class="display-block" style="margin-top:8px; display:none;" id="morning-min-action-display">
+          <div class="display-block-val" id="morning-min-action-val"></div>
+        </div>
+      </div>
+
+      <div style="height:12px;"></div>
+      <button class="btn-primary" onclick="handleMorningGo()">今日も行こう →</button>
+    </div>
+  </div>
+
+  <!-- ====== 仕事中 ====== -->
+  <div class="screen" id="screen-work">
+    <div class="detail-header">
+      <button class="back-btn" onclick="goHome()">‹</button>
+      <div class="detail-title-wrap">
+        <span class="detail-emoji">🔨</span>
+        <span class="detail-title"> 仕事中</span>
+      </div>
+    </div>
+    <div class="scroll-area">
+
+      <div class="os-card">
+        <div class="os-card-label">人間OS</div>
+        <div class="os-card-title">休憩はサボりではない</div>
+        <div class="os-card-body">疲労した脳は判断精度が落ちます。短い休憩は、次の作業の精度を戻すための回復です。</div>
+        <div class="os-card-tags">
+          <span class="os-tag">認知資源</span>
+          <span class="os-tag">意思決定疲れ</span>
+        </div>
+      </div>
+
+      <div class="tab-row">
+        <button class="tab-btn active" onclick="switchWorkTab('break')">休憩</button>
+        <button class="tab-btn" onclick="switchWorkTab('next')">次の一手</button>
+        <button class="tab-btn" onclick="switchWorkTab('water')">水分</button>
+      </div>
+
+      <!-- 休憩タブ -->
+      <div class="tab-content active" id="work-tab-break">
+        <div class="timer-display">
+          <div class="timer-num" id="work-timer-display">10:00</div>
+          <div class="timer-label" id="work-timer-label">休憩タイマー</div>
+        </div>
+        <div class="timer-preset-row">
+          <button onclick="setWorkTimer(5)" id="preset-5">5分</button>
+          <button onclick="setWorkTimer(10)" id="preset-10" class="active-preset">10分</button>
+          <button onclick="setWorkTimer(15)" id="preset-15">15分</button>
+          <button onclick="setWorkTimer(20)" id="preset-20">20分</button>
+        </div>
+        <div class="timer-btns">
+          <button class="btn-green" id="work-timer-start-btn" onclick="toggleWorkTimer()">▶ 開始</button>
+          <button class="btn-secondary" onclick="resetWorkTimer()" style="width:80px; flex:none;">リセット</button>
+        </div>
+        <div style="height:16px;"></div>
+        <div class="section-label">3分リセット（目を閉じる）</div>
+        <button class="btn-secondary" onclick="start3MinReset()" style="margin-top:6px;">👁 3分リセット開始</button>
+      </div>
+
+      <!-- 次の一手タブ -->
+      <div class="tab-content" id="work-tab-next">
+        <div class="section">
+          <div class="section-label">仕事へ戻る前に決める</div>
+          <textarea class="textarea-input" id="work-next-input" placeholder="次にやること。一行でOK。"></textarea>
+          <div class="chips" id="work-next-chips">
+            <span class="chip" onclick="chipWork('図面確認')">図面確認</span>
+            <span class="chip" onclick="chipWork('電話')">電話</span>
+            <span class="chip" onclick="chipWork('材料確認')">材料確認</span>
+            <span class="chip" onclick="chipWork('メール返信')">メール返信</span>
+            <span class="chip" onclick="chipWork('現場確認')">現場確認</span>
+            <span class="chip" onclick="chipWork('発注')">発注</span>
+          </div>
+          <div style="height:12px;"></div>
+          <button class="btn-primary" onclick="saveWorkNextAction()">保存して戻る →</button>
+        </div>
+      </div>
+
+      <!-- 水分タブ -->
+      <div class="tab-content" id="work-tab-water">
+        <div style="text-align:center; padding:24px 0 16px;">
+          <div style="font-size:48px; margin-bottom:8px;">💧</div>
+          <div style="font-size:16px; color:var(--white-dim);">今日 <span id="water-count" style="color:var(--white); font-weight:700; font-size:22px;">0</span> 杯</div>
+        </div>
+        <button class="btn-green" onclick="addWater()">飲んだ ＋1</button>
+        <div style="height:10px;"></div>
+        <button class="btn-secondary" onclick="resetWater()">リセット</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== ひらめき ====== -->
+  <div class="screen" id="screen-idea">
+    <div class="detail-header">
+      <button class="back-btn" onclick="goHome()">‹</button>
+      <div class="detail-title-wrap">
+        <span class="detail-emoji">💡</span>
+        <span class="detail-title"> ひらめいた</span>
+      </div>
+    </div>
+    <div class="scroll-area">
+
+      <div class="os-card">
+        <div class="os-card-label">人間OS</div>
+        <div class="os-card-title">ひらめきは逃げる</div>
+        <div class="os-card-body">作業記憶は短時間で消えます。浮かんだ瞬間に外へ出すことで、脳の負荷が減ります。</div>
+        <div class="os-card-tags">
+          <span class="os-tag">ワーキングメモリ</span>
+          <span class="os-tag">認知負荷</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <textarea class="textarea-input" id="idea-input" placeholder="思いついたこと。単語でもOK。" style="min-height:80px;"></textarea>
+        <div class="section-label" style="margin-top:12px; margin-bottom:6px;">保存先</div>
+        <div class="chips" id="idea-type-chips">
+          <span class="chip selected" data-idea-type="アイデア" onclick="selectIdeaType(this)">アイデア</span>
+          <span class="chip" data-idea-type="買う物" onclick="selectIdeaType(this)">買う物</span>
+          <span class="chip" data-idea-type="明日の一手" onclick="selectIdeaType(this)">明日の一手</span>
+          <span class="chip" data-idea-type="改善案" onclick="selectIdeaType(this)">改善案</span>
+          <span class="chip" data-idea-type="後で考える" onclick="selectIdeaType(this)">後で考える</span>
+        </div>
+        <div style="height:12px;"></div>
+        <button class="btn-primary" onclick="saveIdea()">保存する</button>
+      </div>
+
+      <div class="section">
+        <div class="section-label">今日のひらめき</div>
+        <div class="evidence-list" id="idea-list">
+          <div class="evidence-empty">まだありません</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 崩れた ====== -->
+  <div class="screen" id="screen-return">
+    <div class="detail-header">
+      <button class="back-btn" onclick="goHome()">‹</button>
+      <div class="detail-title-wrap">
+        <span class="detail-emoji">↩️</span>
+        <span class="detail-title"> 崩れた</span>
+      </div>
+      <div class="return-header-badge">戻れる</div>
+    </div>
+    <div class="scroll-area">
+
+      <div class="os-card">
+        <div class="os-card-label">人間OS</div>
+        <div class="os-card-title">衝動とは戦わない</div>
+        <div class="os-card-body">衝動が来た時に正面から勝とうとすると負けやすい。先に決めた一手へ移る方が戻りやすくなります。</div>
+        <div class="os-card-tags">
+          <span class="os-tag">報酬系</span>
+          <span class="os-tag">実装意図</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">戻る一手を選ぶ</div>
+        <div class="return-action-list" id="return-action-list">
+          <!-- JS生成 -->
+        </div>
+        <div style="height:10px;"></div>
+        <button class="btn-secondary" onclick="openAddReturnModal()">＋ 戻る一手を追加</button>
+      </div>
+
+      <div class="section">
+        <div class="section-label">今すぐできる最小行動</div>
+        <div class="chips">
+          <span class="chip" onclick="quickReturn('水を飲む')">水を飲む</span>
+          <span class="chip" onclick="quickReturn('外を1分見る')">外を1分見る</span>
+          <span class="chip" onclick="quickReturn('立ち上がる')">立ち上がる</span>
+          <span class="chip" onclick="quickReturn('深呼吸3回')">深呼吸3回</span>
+          <span class="chip" onclick="quickReturn('ノートを開く')">ノートを開く</span>
+          <span class="chip" onclick="quickReturn('スマホを置く')">スマホを置く</span>
+        </div>
+      </div>
+
+      <div style="height:4px;"></div>
+      <button class="btn-green" onclick="handleReturned()">✓ 戻れた</button>
+    </div>
+  </div>
+
+  <!-- ====== 夜 ====== -->
+  <div class="screen night-accent" id="screen-night">
+    <div class="detail-header">
+      <button class="back-btn" onclick="goHome()">‹</button>
+      <div class="detail-title-wrap">
+        <span class="detail-emoji">🌙</span>
+        <span class="detail-title"> 夜</span>
+      </div>
+    </div>
+    <div class="scroll-area">
+
+      <div class="os-card" style="border-color: rgba(123,104,238,0.25); background: linear-gradient(135deg, rgba(123,104,238,0.08), rgba(123,104,238,0.02));">
+        <div class="os-card-label" style="color:#a89fe8;">人間OS</div>
+        <div class="os-card-title" style="color:#c4b8f8;">できたことは意識して拾う</div>
+        <div class="os-card-body">脳はできなかったことを強く記憶しやすい。証拠回収は、今日できた事実を意図的に残す作業です。</div>
+        <div class="os-card-tags">
+          <span class="os-tag" style="color:#a89fe8; background:rgba(123,104,238,0.1);">ネガティビティバイアス</span>
+          <span class="os-tag" style="color:#a89fe8; background:rgba(123,104,238,0.1);">自己効力感</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">今日できた証拠を追加</div>
+        <textarea class="textarea-input" id="night-evidence-input" placeholder="小さなことでいい。一行でOK。"></textarea>
+        <div style="height:8px;"></div>
+        <button class="btn-secondary" onclick="addEvidenceFromNight()">証拠を追加する</button>
+      </div>
+
+      <div class="section">
+        <div class="section-label">今日の証拠リスト</div>
+        <div class="evidence-list" id="night-evidence-list">
+          <div class="evidence-empty">まだありません</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">今日の復帰回数</div>
+        <div class="display-block">
+          <div class="display-block-val" id="night-return-count">0 回</div>
+          <div class="display-block-hint">崩れても戻れたことが証拠</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">明日の一手</div>
+        <div class="display-block-hint" style="margin-bottom:8px;">文章じゃなくてOK。明日の朝、自分が思い出せる単語を1つだけ。</div>
+        <input class="text-input" id="night-tomorrow-input" placeholder="例：図面　電話　PC　散歩" type="text">
+        <div class="chips" style="margin-top:8px;">
+          <span class="chip" onclick="chipTomorrow('無し')">無し</span>
+          <span class="chip" onclick="chipTomorrow('未定')">未定</span>
+          <span class="chip" onclick="chipTomorrow('朝決める')">朝決める</span>
+          <span class="chip" onclick="chipTomorrow('図面')">図面</span>
+          <span class="chip" onclick="chipTomorrow('電話')">電話</span>
+          <span class="chip" onclick="chipTomorrow('PC')">PC</span>
+          <span class="chip" onclick="chipTomorrow('メール')">メール</span>
+          <span class="chip" onclick="chipTomorrow('現場')">現場</span>
+          <span class="chip" onclick="chipTomorrow('請求書')">請求書</span>
+          <span class="chip" onclick="chipTomorrow('散歩')">散歩</span>
+          <span class="chip" onclick="chipTomorrow('筋トレ')">筋トレ</span>
+          <span class="chip" onclick="chipTomorrow('水')">水</span>
+        </div>
+        <div style="height:8px;"></div>
+        <button class="btn-secondary" id="night-hint-toggle" onclick="toggleHint()">💡 ヒントを見る</button>
+        <div class="hint-panel" id="night-hint-panel">
+          <div class="hint-mode-row" id="hint-mode-row">
+            <button class="hint-mode-btn active" onclick="selectHintMode(this,'work')">会社員</button>
+            <button class="hint-mode-btn" onclick="selectHintMode(this,'side')">副業</button>
+            <button class="hint-mode-btn" onclick="selectHintMode(this,'study')">勉強</button>
+            <button class="hint-mode-btn active" onclick="selectHintMode(this,'site')">現場</button>
+            <button class="hint-mode-btn" onclick="selectHintMode(this,'life')">生活</button>
+            <button class="hint-mode-btn" onclick="selectHintMode(this,'dev')">開発</button>
+          </div>
+          <div id="hint-questions"></div>
+        </div>
+        <div style="height:10px;"></div>
+        <button class="btn-primary" onclick="saveTomorrowAction()">明日の一手を保存</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ====== モーダル：戻る一手を追加 ====== -->
+  <div class="modal-overlay" id="modal-return" onclick="closeModal('modal-return')">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="modal-title">戻る一手を追加</div>
+      <input class="text-input" id="modal-return-input" placeholder="例：水を飲む、散歩する、深呼吸" type="text">
+      <div style="height:12px;"></div>
+      <button class="btn-primary" onclick="saveReturnAction()">追加する</button>
+    </div>
+  </div>
+
+  <!-- トースト -->
+  <div id="toast"></div>
+
+</div>
+
+<script>
+// ===== DATA LAYER =====
+const STORAGE_KEY = 'daimon-os-v1';
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+
+function saveData(data) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch(e) {}
+}
+
+function getData(key, def) {
+  const d = loadData();
+  return d[key] !== undefined ? d[key] : def;
+}
+
+function setData(key, val) {
+  const d = loadData();
+  d[key] = val;
+  saveData(d);
+}
+
+// 今日のキー（日付ベース）
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addEvidence(text, type='done') {
+  const key = 'evidence_' + todayKey();
+  const list = getData(key, []);
+  list.push({ text, type, time: new Date().toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'}) });
+  setData(key, list);
+}
+
+function getEvidence() {
+  return getData('evidence_' + todayKey(), []);
+}
+
+function saveTomorrowActionFn(val) {
+  setData('tomorrow_action', val);
+}
+
+function saveIdea(text, type) {
+  const key = 'ideas_' + todayKey();
+  const list = getData(key, []);
+  list.push({ text, type, time: new Date().toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'}) });
+  setData(key, list);
+}
+
+function getIdeas() {
+  return getData('ideas_' + todayKey(), []);
+}
+
+function saveReturnActionFn(text) {
+  const list = getData('return_actions', []);
+  if (!list.includes(text)) list.push(text);
+  setData('return_actions', list);
+}
+
+function getReturnActions() {
+  return getData('return_actions', ['深呼吸する', '水を飲む', '外を歩く']);
+}
+
+function addReturnCount() {
+  const key = 'return_count_' + todayKey().slice(0, 7); // 月単位
+  const n = getData(key, 0);
+  setData(key, n + 1);
+}
+
+function getReturnCount() {
+  const key = 'return_count_' + todayKey().slice(0, 7);
+  return getData(key, 0);
+}
+
+function getTodayReturnCount() {
+  return getData('return_count_today_' + todayKey(), 0);
+}
+
+function addTodayReturnCount() {
+  const key = 'return_count_today_' + todayKey();
+  setData(key, getData(key, 0) + 1);
+  addReturnCount();
+}
+
+// ===== NAVIGATION =====
+let currentScreen = 'home';
+
+function openScreen(name) {
+  document.getElementById('screen-' + currentScreen).classList.remove('active');
+  document.getElementById('screen-' + name).classList.add('active');
+  currentScreen = name;
+  refreshScreen(name);
+}
+
+function goHome() {
+  document.getElementById('screen-' + currentScreen).classList.remove('active');
+  document.getElementById('screen-home').classList.add('active');
+  currentScreen = 'home';
+  refreshHome();
+}
+
+function refreshScreen(name) {
+  if (name === 'morning') refreshMorning();
+  if (name === 'idea') refreshIdea();
+  if (name === 'return') refreshReturn();
+  if (name === 'night') refreshNight();
+}
+
+// ===== HOME =====
+function refreshHome() {
+  const ev = getEvidence();
+  document.getElementById('home-evidence-count').textContent = ev.length;
+  document.getElementById('home-return-count').textContent = getReturnCount();
+  const ta = getData('tomorrow_action', '');
+  document.getElementById('home-tomorrow-action').textContent = ta || '—';
+  document.getElementById('home-morning-sub').textContent = ta ? `一手：${ta}` : '昨日の一手を見る';
+}
+
+// ===== 朝 =====
+function refreshMorning() {
+  const ta = getData('tomorrow_action', '');
+  document.getElementById('morning-tomorrow-val').textContent = ta || '（昨夜は未設定）';
+
+  const ma = getData('morning_min_action', '');
+  if (ma) {
+    document.getElementById('morning-min-action').style.display = 'none';
+    document.querySelector('.mini-input-row button').style.display = 'none';
+    document.getElementById('morning-min-action-display').style.display = 'block';
+    document.getElementById('morning-min-action-val').textContent = ma;
+  }
+}
+
+function saveMorningMinAction() {
+  const val = document.getElementById('morning-min-action').value.trim();
+  if (!val) return;
+  setData('morning_min_action', val);
+  showToast('最小行動を保存しました');
+  refreshMorning();
+}
+
+function handleMorningGo() {
+  addEvidence('朝のスタートを確認した', 'done');
+  showToast('今日も行こう 💪');
+  setTimeout(goHome, 800);
+}
+
+// ===== 仕事中 タイマー =====
+let workTimerSec = 600;
+let workTimerTarget = 600;
+let workTimerInterval = null;
+let workTimerRunning = false;
+
+function setWorkTimer(min) {
+  if (workTimerRunning) return;
+  workTimerTarget = min * 60;
+  workTimerSec = workTimerTarget;
+  updateWorkTimerDisplay();
+  document.querySelectorAll('.timer-preset-row button').forEach(b => b.classList.remove('active-preset'));
+  document.getElementById('preset-' + min).classList.add('active-preset');
+}
+
+function updateWorkTimerDisplay() {
+  const m = Math.floor(workTimerSec / 60).toString().padStart(2, '0');
+  const s = (workTimerSec % 60).toString().padStart(2, '0');
+  document.getElementById('work-timer-display').textContent = m + ':' + s;
+}
+
+function toggleWorkTimer() {
+  if (workTimerRunning) {
+    clearInterval(workTimerInterval);
+    workTimerRunning = false;
+    document.getElementById('work-timer-start-btn').textContent = '▶ 再開';
+  } else {
+    workTimerRunning = true;
+    document.getElementById('work-timer-start-btn').textContent = '⏸ 一時停止';
+    workTimerInterval = setInterval(() => {
+      workTimerSec--;
+      if (workTimerSec <= 0) {
+        clearInterval(workTimerInterval);
+        workTimerRunning = false;
+        workTimerSec = 0;
+        updateWorkTimerDisplay();
+        document.getElementById('work-timer-label').textContent = '休憩終了！仕事へ戻ろう';
+        document.getElementById('work-timer-start-btn').textContent = '▶ 開始';
+        if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+      } else {
+        updateWorkTimerDisplay();
+      }
+    }, 1000);
+  }
+}
+
+function resetWorkTimer() {
+  clearInterval(workTimerInterval);
+  workTimerRunning = false;
+  workTimerSec = workTimerTarget;
+  updateWorkTimerDisplay();
+  document.getElementById('work-timer-start-btn').textContent = '▶ 開始';
+  document.getElementById('work-timer-label').textContent = '休憩タイマー';
+}
+
+function start3MinReset() {
+  clearInterval(workTimerInterval);
+  workTimerTarget = 180;
+  workTimerSec = 180;
+  workTimerRunning = true;
+  document.getElementById('work-timer-label').textContent = '目を閉じる';
+  document.getElementById('work-timer-start-btn').textContent = '⏸ 停止';
+  document.querySelectorAll('.timer-preset-row button').forEach(b => b.classList.remove('active-preset'));
+  workTimerInterval = setInterval(() => {
+    workTimerSec--;
+    if (workTimerSec <= 0) {
+      clearInterval(workTimerInterval);
+      workTimerRunning = false;
+      workTimerSec = 0;
+      updateWorkTimerDisplay();
+      document.getElementById('work-timer-label').textContent = 'リセット完了';
+      document.getElementById('work-timer-start-btn').textContent = '▶ 開始';
+      if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+    } else {
+      updateWorkTimerDisplay();
+    }
+  }, 1000);
+  updateWorkTimerDisplay();
+}
+
+function switchWorkTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const tabs = ['break','next','water'];
+    b.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('work-tab-' + tab).classList.add('active');
+}
+
+function chipWork(val) {
+  document.getElementById('work-next-input').value = val;
+}
+
+function saveWorkNextAction() {
+  const val = document.getElementById('work-next-input').value.trim();
+  if (!val) return;
+  setData('work_next_action', val);
+  addEvidence('次の一手：' + val, 'done');
+  showToast('保存しました → ' + val);
+  document.getElementById('work-next-input').value = '';
+  setTimeout(goHome, 700);
+}
+
+// 水分
+function addWater() {
+  const key = 'water_' + todayKey();
+  setData(key, getData(key, 0) + 1);
+  document.getElementById('water-count').textContent = getData(key, 0);
+  addEvidence('水を飲んだ', 'done');
+  showToast('💧 +1');
+}
+
+function resetWater() {
+  setData('water_' + todayKey(), 0);
+  document.getElementById('water-count').textContent = 0;
+}
+
+function initWater() {
+  const key = 'water_' + todayKey();
+  document.getElementById('water-count').textContent = getData(key, 0);
+}
+
+// ===== ひらめき =====
+let selectedIdeaType = 'アイデア';
+
+function selectIdeaType(el) {
+  document.querySelectorAll('#idea-type-chips .chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedIdeaType = el.dataset.ideaType;
+}
+
+function saveIdea() {
+  const val = document.getElementById('idea-input').value.trim();
+  if (!val) return;
+  const d = loadData();
+  const key = 'ideas_' + todayKey();
+  if (!d[key]) d[key] = [];
+  d[key].push({ text: val, type: selectedIdeaType, time: new Date().toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'}) });
+  saveData(d);
+
+  // 明日の一手への自動反映
+  if (selectedIdeaType === '明日の一手') {
+    setData('tomorrow_action', val);
+    showToast('明日の一手にも保存しました');
+  } else {
+    showToast('保存しました：' + selectedIdeaType);
+  }
+  document.getElementById('idea-input').value = '';
+  refreshIdea();
+}
+
+function refreshIdea() {
+  const ideas = getData('ideas_' + todayKey(), []);
+  const el = document.getElementById('idea-list');
+  if (!ideas.length) {
+    el.innerHTML = '<div class="evidence-empty">まだありません</div>';
+    return;
+  }
+  el.innerHTML = ideas.map(i => `
+    <div class="evidence-item">
+      <div class="evidence-dot" style="background:var(--green);"></div>
+      <div>
+        <div class="evidence-text">${escHtml(i.text)}</div>
+        <div class="evidence-time">${i.type} · ${i.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== 崩れた =====
+function refreshReturn() {
+  const actions = getReturnActions();
+  const el = document.getElementById('return-action-list');
+  if (!actions.length) {
+    el.innerHTML = '<div class="evidence-empty">まだ登録がありません</div>';
+    return;
+  }
+  el.innerHTML = actions.map((a, i) => `
+    <div class="return-action-item" onclick="useReturnAction(${i})">
+      <div class="return-action-text">${escHtml(a)}</div>
+      <div class="return-action-use">使う →</div>
+    </div>
+  `).join('');
+}
+
+function useReturnAction(idx) {
+  const actions = getReturnActions();
+  const a = actions[idx];
+  addEvidence('戻る一手：' + a, 'return');
+  showToast('✓ ' + a);
+}
+
+function quickReturn(val) {
+  addEvidence('最小行動：' + val, 'return');
+  showToast('✓ ' + val);
+}
+
+function handleReturned() {
+  addTodayReturnCount();
+  addEvidence('崩れたが戻れた', 'return');
+  showToast('✓ 戻れた。それが証拠。');
+  setTimeout(goHome, 900);
+}
+
+function openAddReturnModal() {
+  document.getElementById('modal-return').classList.add('open');
+  document.getElementById('modal-return-input').value = '';
+  setTimeout(() => document.getElementById('modal-return-input').focus(), 100);
+}
+
+function saveReturnAction() {
+  const val = document.getElementById('modal-return-input').value.trim();
+  if (!val) return;
+  saveReturnActionFn(val);
+  closeModal('modal-return');
+  refreshReturn();
+  showToast('追加しました');
+}
+
+// ===== 夜 =====
+function refreshNight() {
+  renderNightEvidence();
+  document.getElementById('night-return-count').textContent = getTodayReturnCount() + ' 回';
+  const ta = getData('tomorrow_action', '');
+  document.getElementById('night-tomorrow-input').value = ta;
+}
+
+function renderNightEvidence() {
+  const ev = getEvidence();
+  const el = document.getElementById('night-evidence-list');
+  if (!ev.length) {
+    el.innerHTML = '<div class="evidence-empty">まだありません</div>';
+    return;
+  }
+  el.innerHTML = ev.map(e => `
+    <div class="evidence-item">
+      <div class="evidence-dot ${e.type === 'return' ? 'return-dot' : ''}"></div>
+      <div>
+        <div class="evidence-text">${escHtml(e.text)}</div>
+        <div class="evidence-time">${e.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addEvidenceFromNight() {
+  const val = document.getElementById('night-evidence-input').value.trim();
+  if (!val) return;
+  addEvidence(val, 'done');
+  document.getElementById('night-evidence-input').value = '';
+  renderNightEvidence();
+  showToast('証拠を追加しました');
+}
+
+function chipTomorrow(val) {
+  document.getElementById('night-tomorrow-input').value = val;
+}
+
+function saveTomorrowAction() {
+  const val = document.getElementById('night-tomorrow-input').value.trim();
+  if (!val) return;
+  saveTomorrowActionFn(val);
+  showToast('明日の一手：' + val);
+  setTimeout(goHome, 800);
+}
+
+// ===== ヒント =====
+const HINTS = {
+  work: ['明日、誰よりも先に手をつける仕事は？', 'メールを見る前に10分だけ進めることは？', '言われる前に準備できるものは？'],
+  side: ['明日5分だけ進めるなら何？', '最初に開くファイルは？', '投稿・商品・LPのどこを触る？'],
+  study: ['明日最初に開く教材は？', '1ページだけ読むなら何？', '1問だけ解くなら何？'],
+  site: ['明日朝イチで確認する場所は？', '忘れたら困る物は？', '最初に見る図面は？'],
+  life: ['明日忘れたら困ることは？', '朝一番に整えるものは？', '体調のために一つやるなら？'],
+  dev: ['明日最初に確認するファイルは？', '直す画面は？', '次に投げるAIは？']
+};
+
+let currentHintMode = 'site';
+
+function toggleHint() {
+  const panel = document.getElementById('night-hint-panel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) renderHints();
+}
+
+function selectHintMode(el, mode) {
+  document.querySelectorAll('.hint-mode-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  currentHintMode = mode;
+  renderHints();
+}
+
+function renderHints() {
+  const qs = HINTS[currentHintMode] || [];
+  document.getElementById('hint-questions').innerHTML = qs.map(q => `
+    <div class="hint-question" onclick="applyHint('${escJs(q)}')">${escHtml(q)}</div>
+  `).join('');
+}
+
+function applyHint(q) {
+  document.getElementById('night-tomorrow-input').value = q;
+  document.getElementById('night-hint-panel').classList.remove('open');
+}
+
+// ===== MODAL =====
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// ===== TOAST =====
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ===== UTILS =====
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escJs(s) {
+  return String(s).replace(/'/g,"\\'").replace(/\n/g,' ');
+}
+
+// ===== INIT =====
+function init() {
+  refreshHome();
+  initWater();
+  // デフォルト戻る一手がまだない場合は設定
+  if (!getData('return_actions', null)) {
+    setData('return_actions', ['深呼吸する', '水を飲む', '外を1分歩く', 'スマホを置く']);
+  }
+}
+
+init();
+
+// Service Worker 登録
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
